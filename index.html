@@ -30,11 +30,10 @@
       </nav>
 
       <div class="sidebar-footer">
-        <button id="themeToggle" class="ghost-btn" title="Alternar tema">🌙 Tema</button>
-        <div class="data-buttons">
-          <button id="exportBtn" class="ghost-btn" title="Baixar seus dados">⬇️ Exportar</button>
-          <button id="importBtn" class="ghost-btn" title="Carregar dados">⬆️ Importar</button>
-          <input type="file" id="importFile" accept="application/json" hidden />
+        <div id="accountBox" class="account-box"></div>
+        <div class="footer-row">
+          <button id="themeToggle" class="ghost-btn" title="Alternar tema">🌙 Tema</button>
+          <button id="notifyBtn" class="ghost-btn" title="Ativar lembretes de tarefas">🔔 Lembretes</button>
         </div>
       </div>
     </aside>
@@ -64,7 +63,10 @@
   <!-- Toast -->
   <div id="toast" class="toast" hidden></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>

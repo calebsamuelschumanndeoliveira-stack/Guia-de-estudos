@@ -17,8 +17,9 @@ salvos no próprio navegador de cada pessoa. Perfeito para hospedar de graça no
 - 🗓️ **Cronograma** — monte sua rotina de estudos da semana
 - 📈 **Notas** — planilha de avaliações com **média ponderada** automática
 - 🎯 **Metas** — defina objetivos (ex.: "estudar 20h") e acompanhe a evolução
+- 🔐 **Login na nuvem (opcional)** — cada pessoa tem sua conta e os dados sincronizam entre aparelhos (via Supabase)
+- 🔔 **Lembretes** — notificação no navegador avisando das tarefas do dia
 - 🌙 **Tema claro/escuro**
-- ⬇️⬆️ **Exportar/Importar** seus dados em um arquivo `.json`
 - 📱 Funciona no celular e no computador
 
 ## 🚀 Como usar no seu computador
@@ -46,14 +47,28 @@ git remote add origin https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git
 git push -u origin main
 ```
 
+## 🔐 Login na nuvem (opcional)
+
+Por padrão o site funciona **sem login**, salvando no próprio navegador. Se você
+quiser que cada pessoa tenha uma **conta** e os dados **sincronizem entre
+aparelhos** (PC e celular), ative o login na nuvem com o Supabase — é gratuito.
+
+👉 Passo a passo completo em **[CONFIGURAR-LOGIN.md](CONFIGURAR-LOGIN.md)**.
+
+## 🔔 Lembretes de tarefas
+
+Clique em **🔔 Lembretes** na barra lateral para permitir notificações. O site
+avisa quando você tem tarefas para o dia.
+
+> Observação: as notificações funcionam enquanto o site está aberto no navegador.
+> Lembretes com o site fechado (ou por WhatsApp) exigiriam um servidor próprio.
+
 ## 💾 Sobre os dados
 
-Os dados são salvos automaticamente no **localStorage** do navegador.
-Isso significa que:
-
-- Ficam só no seu dispositivo (privado).
-- Cada amigo que abrir o link terá os próprios estudos, do zero.
-- Para levar seus dados para outro computador, use **Exportar** e depois **Importar**.
+- **Sem login (modo local):** os dados ficam só no navegador daquele aparelho.
+  Cada amigo que abrir o link terá os próprios estudos, do zero.
+- **Com login (nuvem):** os dados ficam na conta da pessoa e acompanham ela em
+  qualquer aparelho.
 
 ## 📁 Estrutura do projeto
 

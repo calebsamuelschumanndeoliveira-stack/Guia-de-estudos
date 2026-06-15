@@ -553,37 +553,44 @@
     applyTheme(next);
   };
 
-  // Exportar / Importar
-  $("#exportBtn").onclick = () => {
-    const blob = new Blob([Store.export()], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `guia-estudos-${todayISO()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("Dados exportados ⬇️");
-  };
-  $("#importBtn").onclick = () => $("#importFile").click();
-  $("#importFile").onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        if (!data.subjects || !data.tasks) throw new Error("formato");
-        Store.replace(data);
-        applyTheme(Store.get().settings.theme);
-        navTo(current);
-        toast("Dados importados ⬆️");
-      } catch {
-        toast("Arquivo inválido");
+  // ---------- Lembretes (notificações no navegador) ----------
+  const Notifier = {
+    check() {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const today = todayISO();
+      const due = Store.get().tasks.filter((t) => !t.done && t.due && t.due <= today);
+      const lastKey = "guia-lastNotif" + (Store.isCloud() ? "-cloud" : "");
+      if (due.length && localStorage.getItem(lastKey) !== today) {
+        const overdue = due.filter((t) => t.due < today).length;
+        const body = overdue
+          ? `Você tem ${due.length} tarefa(s) pendente(s), sendo ${overdue} atrasada(s).`
+          : `Você tem ${due.length} tarefa(s) para hoje. Bons estudos! 📚`;
+        try { new Notification("📚 Guia de Estudos", { body }); } catch (e) {}
+        localStorage.setItem(lastKey, today);
       }
-      e.target.value = "";
-    };
-    reader.readAsText(file);
+    },
+  };
+  setInterval(() => Notifier.check(), 60 * 60 * 1000); // re-checa a cada hora enquanto aberto
+
+  $("#notifyBtn").onclick = async () => {
+    if (!("Notification" in window)) return toast("Seu navegador não suporta notificações");
+    if (Notification.permission === "denied") return toast("As notificações estão bloqueadas nas configurações do navegador");
+    if (Notification.permission === "granted") {
+      localStorage.removeItem("guia-lastNotif");
+      localStorage.removeItem("guia-lastNotif-cloud");
+      Notifier.check();
+      return toast("Lembretes já estão ativos 🔔");
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") { toast("Lembretes ativados! 🔔"); Notifier.check(); }
+    else toast("Permissão de notificação negada");
   };
 
-  // Inicializa
-  navTo("dashboard");
+  // Início — chamado pelo auth.js depois de carregar os dados (local ou nuvem)
+  function start() {
+    applyTheme(Store.get().settings.theme);
+    navTo(current);
+    Notifier.check();
+  }
+  window.App = { start, renderAll };
 })();
