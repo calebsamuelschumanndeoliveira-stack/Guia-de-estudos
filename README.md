@@ -15,7 +15,7 @@ salvos no próprio navegador de cada pessoa. Perfeito para hospedar de graça no
 - 📘 **Matérias** — cadastre disciplinas com cor e professor
 - ✅ **Tarefas** — marque com check, defina prazo e prioridade, filtre por status
 - 🗓️ **Cronograma** — monte sua rotina de estudos da semana
-- 📈 **Notas** — planilha de avaliações com **média ponderada** automática
+- 📈 **Notas** — lance as avaliações por **bimestre** e veja a **média de cada bimestre** e a **média anual** de cada matéria, do jeito da sua escola (soma dos pontos ÷ um número que você escolhe)
 - 🎯 **Metas** — defina objetivos (ex.: "estudar 20h") e acompanhe a evolução
 - 🔐 **Login na nuvem (opcional)** — cada pessoa tem sua conta e os dados sincronizam entre aparelhos (via Supabase)
 - 🔔 **Lembretes** — notificação no navegador avisando das tarefas do dia

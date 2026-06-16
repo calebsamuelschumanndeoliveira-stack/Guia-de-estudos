@@ -195,6 +195,28 @@ td input { width: 70px; padding: 6px 8px; border: 1px solid var(--border); borde
 .grade-ok { background: var(--success-soft); color: var(--success); }
 .grade-bad { background: var(--danger-soft); color: var(--danger); }
 
+/* Notas por matéria/bimestre */
+.grades-settings { margin-bottom: 18px; }
+.grades-settings > strong { display: block; margin-bottom: 12px; font-size: 14.5px; }
+.settings-row { display: flex; gap: 18px; flex-wrap: wrap; }
+.settings-row label { font-size: 13px; color: var(--text-soft); display: flex; align-items: center; gap: 7px; }
+.settings-row input { width: 62px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 13.5px; }
+.muted-note { font-size: 12px; color: var(--text-soft); margin-top: 12px; }
+.subject-grades { margin-bottom: 16px; }
+.sg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.sg-head h3 { font-size: 17px; }
+.sg-annual { font-size: 13.5px; color: var(--text-soft); display: flex; align-items: center; gap: 8px; }
+.sg-annual .grade-pill { font-size: 14px; }
+.bim-block { background: var(--surface-2); border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; }
+.bim-block:last-child { margin-bottom: 0; }
+.bim-head { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+.bim-table { width: 100%; }
+.bim-table td { border: none; padding: 6px 0; font-size: 13.5px; vertical-align: middle; }
+.bim-table .ev-name { width: 48%; }
+.bim-table .ev-grade { color: var(--text-soft); white-space: nowrap; }
+.bim-table .ev-grade input { width: 56px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; }
+.bim-table .ev-del { text-align: right; width: 40px; }
+
 /* ---------- Goals ---------- */
 .goal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
 .goal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }

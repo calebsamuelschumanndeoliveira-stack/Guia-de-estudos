@@ -18,7 +18,7 @@ const Store = (() => {
     goals: [
       { id: uid(), title: "Estudar 20h esta semana", current: 6, target: 20, unit: "h" },
     ],
-    settings: { theme: "light" },
+    settings: { theme: "light", gradeDivisor: 2, bimesterCount: 4, passGrade: 6 },
   };
 
   function uid() {

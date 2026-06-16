@@ -357,58 +357,110 @@
   //  NOTAS (planilha)
   // ============================================================
   function renderGrades() {
-    const { grades, subjects } = Store.get();
-    const rows = grades.map((g) => {
-      const sub = subjectById(g.subjectId);
-      const max = g.max || 10;
-      const ok = Number(g.grade) >= max / 2;
-      return `
-        <tr data-id="${g.id}">
-          <td><span class="tag-dot" style="--c:${sub ? sub.color : "var(--primary)"}">${esc(sub ? sub.name : "—")}</span></td>
-          <td>${esc(g.name)}</td>
-          <td><input type="number" step="0.1" min="0" data-field="grade" value="${g.grade ?? ""}" /></td>
-          <td><input type="number" step="0.1" min="0" data-field="max" value="${max}" /></td>
-          <td><input type="number" step="0.1" min="0" data-field="weight" value="${g.weight ?? 1}" /></td>
-          <td>${g.grade !== "" && g.grade != null ? `<span class="grade-pill ${ok ? "grade-ok" : "grade-bad"}">${ok ? "✓" : "✗"}</span>` : "—"}</td>
-          <td><button class="icon-btn" data-del="${g.id}">🗑️</button></td>
-        </tr>`;
-    }).join("");
+    const { grades, subjects, settings } = Store.get();
+    const divisor = Number(settings.gradeDivisor) || 2;
+    const bimCount = Number(settings.bimesterCount) || 4;
+    const passGrade = settings.passGrade ?? 6;
+    const round2 = (n) => Math.round(n * 100) / 100;
 
-    // média ponderada geral
-    const valid = grades.filter((g) => g.grade !== "" && g.grade != null);
-    let avg = "—";
-    if (valid.length) {
-      const tw = valid.reduce((a, g) => a + (Number(g.weight) || 1), 0);
-      const sum = valid.reduce((a, g) => a + Number(g.grade) * (Number(g.weight) || 1) * (10 / (g.max || 10)), 0);
-      avg = (sum / tw).toFixed(2);
+    // média de um bimestre numa matéria = soma dos pontos ÷ divisor
+    const bimAvg = (subjectId, bim) => {
+      const evals = grades.filter((g) => g.subjectId === subjectId && (g.bimester || 1) === bim);
+      if (!evals.length) return null;
+      const soma = evals.reduce((a, g) => a + (Number(g.grade) || 0), 0);
+      return round2(soma / divisor);
+    };
+    // média anual = soma das médias dos bimestres ÷ quantidade de bimestres
+    const annualAvg = (subjectId) => {
+      let total = 0, count = 0;
+      for (let b = 1; b <= bimCount; b++) {
+        const m = bimAvg(subjectId, b);
+        if (m !== null) { total += m; count++; }
+      }
+      return count ? round2(total / bimCount) : null;
+    };
+
+    const settingsCard = `
+      <div class="card grades-settings">
+        <strong>⚙️ Como sua escola calcula a média</strong>
+        <div class="settings-row">
+          <label>Somo os pontos e divido por <input type="number" min="1" step="1" id="set-divisor" value="${divisor}" /></label>
+          <label>Bimestres no ano <input type="number" min="1" max="8" step="1" id="set-bim" value="${bimCount}" /></label>
+          <label>Média para passar <input type="number" min="0" step="0.5" id="set-pass" value="${passGrade}" /></label>
+        </div>
+        <p class="muted-note">Média do bimestre = soma dos pontos ÷ ${divisor}. &nbsp;|&nbsp; Média anual = soma das médias dos ${bimCount} bimestres ÷ ${bimCount}.</p>
+      </div>`;
+
+    const withGrades = subjects.filter((s) => grades.some((g) => g.subjectId === s.id));
+
+    let body;
+    if (!subjects.length) {
+      body = `<div class="empty"><div class="emoji">📘</div><p>Cadastre uma matéria primeiro para lançar notas.</p></div>`;
+    } else if (!withGrades.length) {
+      body = `<div class="empty"><div class="emoji">📝</div><p>Nenhuma nota lançada. Clique em “Nova nota”.</p></div>`;
+    } else {
+      body = withGrades.map((s) => {
+        const annual = annualAvg(s.id);
+        const annualClass = annual === null ? "" : (annual >= passGrade ? "grade-ok" : "grade-bad");
+        let blocks = "";
+        for (let b = 1; b <= bimCount; b++) {
+          const evals = grades.filter((g) => g.subjectId === s.id && (g.bimester || 1) === b);
+          if (!evals.length) continue;
+          const m = bimAvg(s.id, b);
+          const rows = evals.map((g) => `
+            <tr data-id="${g.id}">
+              <td class="ev-name">${esc(g.name)}</td>
+              <td class="ev-grade">
+                <input type="number" step="0.1" min="0" data-field="grade" value="${g.grade ?? ""}" /> de
+                <input type="number" step="0.1" min="0" data-field="max" value="${g.max ?? 10}" />
+              </td>
+              <td class="ev-del"><button class="icon-btn" data-del="${g.id}" title="Excluir">🗑️</button></td>
+            </tr>`).join("");
+          blocks += `
+            <div class="bim-block">
+              <div class="bim-head">
+                <span>${b}º Bimestre</span>
+                <span class="grade-pill ${m >= passGrade ? "grade-ok" : "grade-bad"}">média ${m.toFixed(2)}</span>
+              </div>
+              <table class="bim-table"><tbody>${rows}</tbody></table>
+            </div>`;
+        }
+        return `
+          <div class="card subject-grades" style="border-left:5px solid ${s.color}">
+            <div class="sg-head">
+              <h3>${esc(s.name)}</h3>
+              <div class="sg-annual">Média anual: <span class="grade-pill ${annualClass}">${annual === null ? "—" : annual.toFixed(2)}</span></div>
+            </div>
+            ${blocks}
+          </div>`;
+      }).join("");
     }
 
     $("#view-grades").innerHTML = `
       <div class="view-head">
-        <div><h2>📈 Notas</h2><p>Sua planilha de avaliações com média ponderada (base 10)</p></div>
+        <div><h2>📈 Notas</h2><p>Suas médias por matéria e por bimestre</p></div>
         <button class="btn btn-primary" id="addGrade" ${subjects.length ? "" : "disabled"}>＋ Nova nota</button>
       </div>
-      ${!subjects.length ? `<div class="empty"><div class="emoji">📘</div><p>Cadastre uma matéria primeiro para lançar notas.</p></div>`
-      : grades.length ? `
-        <div class="card stat-card" style="max-width:240px;margin-bottom:18px">
-          <span class="stat-label">📊 Média geral ponderada</span>
-          <span class="stat-value">${avg}</span>
-          <span class="stat-sub">base 10</span>
-        </div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Matéria</th><th>Avaliação</th><th>Nota</th><th>Máx.</th><th>Peso</th><th>Status</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table></div>`
-      : `<div class="empty"><div class="emoji">📝</div><p>Nenhuma nota lançada. Clique em “Nova nota”.</p></div>`}
+      ${subjects.length ? settingsCard : ""}
+      ${body}
     `;
 
     $("#addGrade")?.addEventListener("click", () => gradeForm());
+
+    const onSet = (id, key, clamp) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.onchange = () => { Store.set((st) => { st.settings[key] = clamp(Number(el.value)); }); renderGrades(); };
+    };
+    onSet("set-divisor", "gradeDivisor", (v) => Math.max(1, v || 1));
+    onSet("set-bim", "bimesterCount", (v) => Math.min(8, Math.max(1, v || 1)));
+    onSet("set-pass", "passGrade", (v) => Math.max(0, v || 0));
+
     $$("input[data-field]", $("#view-grades")).forEach((inp) => (inp.onchange = () => {
       const id = inp.closest("tr").dataset.id;
       Store.set((s) => {
         const g = s.grades.find((x) => x.id === id);
-        const v = inp.value === "" ? "" : Number(inp.value);
-        g[inp.dataset.field] = v;
+        g[inp.dataset.field] = inp.value === "" ? "" : Number(inp.value);
       });
       renderGrades();
     }));
@@ -419,14 +471,19 @@
   }
 
   function gradeForm() {
+    const { subjects, settings } = Store.get();
+    const bimCount = Number(settings.bimesterCount) || 4;
+    const bimOpts = Array.from({ length: bimCount }, (_, i) => `<option value="${i + 1}">${i + 1}º Bimestre</option>`).join("");
     modal.open("Nova nota", `
       <div class="form-grid">
-        <div class="field"><label>Matéria</label><select id="f-subject">${Store.get().subjects.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
-        <div class="field"><label>Avaliação</label><input id="f-name" placeholder="Ex.: Prova 1" /></div>
+        <div class="field"><label>Matéria</label><select id="f-subject">${subjects.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
         <div class="field-row">
-          <div class="field"><label>Nota</label><input type="number" step="0.1" id="f-grade" placeholder="8.5" /></div>
-          <div class="field"><label>Nota máxima</label><input type="number" step="0.1" id="f-max" value="10" /></div>
-          <div class="field"><label>Peso</label><input type="number" step="0.1" id="f-weight" value="1" /></div>
+          <div class="field"><label>Bimestre</label><select id="f-bim">${bimOpts}</select></div>
+          <div class="field"><label>Avaliação</label><input id="f-name" placeholder="Ex.: Prova" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Pontos que fez</label><input type="number" step="0.1" id="f-grade" placeholder="6" /></div>
+          <div class="field"><label>Valia (máximo)</label><input type="number" step="0.1" id="f-max" value="10" /></div>
         </div>
         <div class="modal-actions">
           <button class="btn btn-light" id="f-cancel">Cancelar</button>
@@ -441,10 +498,10 @@
         Store.set((s) => s.grades.push({
           id: Store.uid(),
           subjectId: $("#f-subject", body).value,
+          bimester: Number($("#f-bim", body).value) || 1,
           name,
           grade: $("#f-grade", body).value === "" ? "" : Number($("#f-grade", body).value),
           max: Number($("#f-max", body).value) || 10,
-          weight: Number($("#f-weight", body).value) || 1,
         }));
         modal.close(); renderGrades(); toast("Nota lançada");
       };
