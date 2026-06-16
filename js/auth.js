@@ -41,6 +41,7 @@
     hideAuthScreen();
     const meta = session.user.user_metadata || {};
     const name = meta.username || session.user.email;
+    window.GuiaUser = meta.username || null;
     setAccountBox(`
       <div class="acc-user">👤 <strong>${escapeHtml(name)}</strong></div>
       <button id="logoutBtn" class="ghost-btn">Sair</button>

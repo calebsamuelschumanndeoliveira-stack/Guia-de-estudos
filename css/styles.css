@@ -111,6 +111,8 @@ body {
 .btn-primary:hover { filter: brightness(1.08); }
 .btn-light { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .btn-light:hover { border-color: var(--primary); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { filter: brightness(1.08); }
 .icon-btn { background: transparent; border: none; color: var(--text-soft); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
 
@@ -173,16 +175,70 @@ body {
 .prio-baixa { background: var(--success-soft); color: var(--success); }
 .overdue { color: var(--danger); font-weight: 600; }
 
-/* ---------- Schedule ---------- */
-.schedule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.day-col { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 120px; }
-.day-col h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); margin-bottom: 10px; }
-.slot { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 7px; position: relative; border-left: 3px solid var(--primary); }
-.slot .slot-time { font-weight: 700; font-size: 11px; color: var(--text-soft); }
-.slot .slot-x { position: absolute; top: 4px; right: 6px; cursor: pointer; opacity: .5; font-size: 12px; }
-.slot .slot-x:hover { opacity: 1; }
-.add-slot { width: 100%; border: 1px dashed var(--border); background: transparent; color: var(--text-soft); border-radius: 8px; padding: 7px; font-size: 12px; cursor: pointer; }
-.add-slot:hover { border-color: var(--primary); color: var(--primary); }
+/* ---------- Calendário ---------- */
+.cal-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.cal-title { font-size: 17px; min-width: 150px; text-align: center; }
+.cal-toolbar .icon-btn { font-size: 24px; line-height: 1; padding: 2px 10px; }
+.cal-today-btn { margin-left: auto; padding: 7px 16px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-weekday { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-soft); text-transform: uppercase; letter-spacing: .03em; padding: 4px 0; }
+.cal-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; min-height: 94px; padding: 6px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; overflow: hidden; transition: border-color .15s; }
+.cal-cell:hover { border-color: var(--primary); }
+.cal-cell.out { opacity: .4; }
+.cal-cell.today { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.cal-daynum { font-size: 12.5px; font-weight: 600; color: var(--text-soft); }
+.cal-cell.today .cal-daynum { color: var(--primary); }
+.cal-items { display: flex; flex-direction: column; gap: 3px; }
+.cal-chip { font-size: 10.5px; padding: 2px 6px; border-radius: 6px; background: var(--surface-2); border-left: 3px solid var(--c, var(--primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-chip.done { text-decoration: line-through; opacity: .55; }
+.cal-more { font-size: 10px; color: var(--text-soft); padding-left: 2px; }
+
+/* Modal de um dia */
+.day-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; max-height: 280px; overflow-y: auto; }
+.day-item { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 9px; padding: 9px 11px; }
+.day-item.done .day-item-title { text-decoration: line-through; opacity: .6; }
+.day-item-main { flex: 1; min-width: 0; }
+.day-item-title { font-size: 14px; }
+.day-item-sub { font-size: 11.5px; color: var(--text-soft); margin-top: 3px; }
+.day-add { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-add input, .day-add select { padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
+.day-add input { flex: 1 1 100%; }
+.day-add select { flex: 1; }
+.day-add .btn { flex: 0 0 auto; }
+
+/* ---------- Painel (destaque de horas / hoje) ---------- */
+.hours-hero { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; background: linear-gradient(135deg, var(--primary), #6d86ff); border: none; color: #fff; }
+.hours-main { display: flex; flex-direction: column; gap: 2px; }
+.hours-label { font-size: 13.5px; opacity: .9; }
+.hours-big { font-size: 38px; font-weight: 800; line-height: 1.1; }
+.hours-live { font-size: 12px; opacity: .95; margin-top: 4px; }
+.hours-hint { font-size: 12px; opacity: .8; margin-top: 4px; }
+.hours-side { display: flex; gap: 22px; }
+.hours-side div { display: flex; flex-direction: column; align-items: flex-end; }
+.hours-side strong { font-size: 20px; font-weight: 700; }
+.hours-side span { font-size: 12px; opacity: .9; }
+.today-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.today-grid .card > strong { display: block; margin-bottom: 10px; font-size: 14px; }
+.mini-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.mini-list li { font-size: 13.5px; padding-left: 2px; }
+.mini-list li.done { text-decoration: line-through; opacity: .55; }
+.empty.small { padding: 24px 20px; }
+.empty.small p { font-size: 13.5px; }
+
+/* ---------- Cronômetro ---------- */
+.timer-card { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 30px 20px; }
+.timer-display { font-size: 60px; font-weight: 800; letter-spacing: 2px; font-variant-numeric: tabular-nums; color: var(--text); }
+.timer-status { font-size: 14px; color: var(--text-soft); }
+.timer-subject { width: 100%; max-width: 280px; margin-top: 8px; text-align: left; }
+.timer-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+.timer-big { font-size: 16px; padding: 12px 28px; }
+
+@media (max-width: 600px) {
+  .cal-grid { gap: 3px; }
+  .cal-cell { min-height: 62px; padding: 4px; border-radius: 7px; }
+  .cal-chip { font-size: 9px; padding: 1px 4px; }
+  .cal-more { display: none; }
+}
 
 /* ---------- Grades table ---------- */
 .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
@@ -226,6 +282,7 @@ td input { width: 70px; padding: 6px 8px; border: 1px solid var(--border); borde
 .stepper { display: flex; gap: 6px; align-items: center; }
 .stepper button { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-size: 15px; }
 .stepper button:hover { border-color: var(--primary); }
+.goal-auto { font-size: 12px; color: var(--primary); font-weight: 600; background: var(--primary-soft); padding: 4px 11px; border-radius: 99px; }
 
 /* ---------- Empty state ---------- */
 .empty { text-align: center; padding: 50px 20px; color: var(--text-soft); }

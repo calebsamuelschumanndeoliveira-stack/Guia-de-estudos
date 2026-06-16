@@ -1,7 +1,7 @@
 # 📚 Guia de Estudos
 
 Um site simples e bonito para **organizar seus estudos**: matérias, tarefas com check,
-cronograma semanal, planilha de notas e metas — tudo em um só lugar.
+calendário de estudos, planilha de notas e metas — tudo em um só lugar.
 
 Funciona 100% no navegador, **sem precisar de servidor ou conta**. Os dados ficam
 salvos no próprio navegador de cada pessoa. Perfeito para hospedar de graça no
@@ -11,10 +11,11 @@ salvos no próprio navegador de cada pessoa. Perfeito para hospedar de graça no
 
 ## ✨ Funcionalidades
 
-- 📊 **Painel** — visão geral do progresso, tarefas concluídas e próximos prazos
+- 📊 **Painel** — horas estudadas no mês, o que estudar hoje, pendências e próximos prazos
+- ⏱️ **Cronômetro** — cronometre o estudo (com pausa) e acumule as horas; o total do mês aparece no Painel
 - 📘 **Matérias** — cadastre disciplinas com cor e professor
 - ✅ **Tarefas** — marque com check, defina prazo e prioridade, filtre por status
-- 🗓️ **Cronograma** — monte sua rotina de estudos da semana
+- 🗓️ **Calendário** — planeje o que estudar em cada dia. Atrasou? Empurre o plano inteiro para frente com um clique (ou adie só um estudo)
 - 📈 **Notas** — lance as avaliações por **bimestre** e veja a **média de cada bimestre** e a **média anual** de cada matéria, do jeito da sua escola (soma dos pontos ÷ um número que você escolhe)
 - 🎯 **Metas** — defina objetivos (ex.: "estudar 20h") e acompanhe a evolução
 - 🔐 **Login na nuvem (opcional)** — cada pessoa tem sua conta e os dados sincronizam entre aparelhos (via Supabase)

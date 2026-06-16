@@ -58,55 +58,109 @@
   // ============================================================
   //  PAINEL (Dashboard)
   // ============================================================
+  // Formata segundos em relógio (HH:MM:SS) e em duração legível (Xh Ymin)
+  function fmtClock(totalSec) {
+    const s = Math.max(0, Math.floor(totalSec));
+    const h = String(Math.floor(s / 3600)).padStart(2, "0");
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return `${h}:${m}:${ss}`;
+  }
+  function fmtDur(totalSec) {
+    const s = Math.max(0, Math.floor(totalSec));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    if (h && m) return `${h}h ${m}min`;
+    if (h) return `${h}h`;
+    if (m) return `${m}min`;
+    return s ? `${s}s` : "0min";
+  }
+  function timerElapsed() {
+    const t = Store.get().timer;
+    let e = t.accumulated || 0;
+    if (t.running && t.startedAt) e += (Date.now() - t.startedAt) / 1000;
+    return e;
+  }
+
   function renderDashboard() {
-    const { subjects, tasks, goals } = Store.get();
-    const done = tasks.filter((t) => t.done).length;
-    const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+    const { subjects, tasks, goals, sessions, plan, timer } = Store.get();
+    const today = isoLocal(new Date());
+    const ym = today.slice(0, 7);
+    const monthSec = sessions.filter((s) => s.date && s.date.slice(0, 7) === ym).reduce((a, s) => a + s.seconds, 0);
+    const todaySec = sessions.filter((s) => s.date === today).reduce((a, s) => a + s.seconds, 0);
+    const totalSec = sessions.reduce((a, s) => a + s.seconds, 0);
+    const monthName = MONTHS[new Date().getMonth()];
+
     const pending = tasks.filter((t) => !t.done);
-    const overdue = pending.filter((t) => t.due && t.due < todayISO()).length;
-    const nextUp = pending
-      .filter((t) => t.due)
-      .sort((a, b) => a.due.localeCompare(b.due))
-      .slice(0, 5);
+    const overdue = pending.filter((t) => t.due && t.due < today).length;
+    const doneCount = tasks.length - pending.length;
+
+    const todayPlan = plan.filter((p) => p.date === today);
+    const todayTasks = pending.filter((t) => t.due === today);
+    const nextUp = pending.filter((t) => t.due && t.due >= today).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 4);
+
+    const greeting = window.GuiaUser ? `Olá, ${esc(window.GuiaUser)}! 👋` : "Olá! 👋";
 
     $("#view-dashboard").innerHTML = `
       <div class="view-head">
-        <div><h2>📊 Painel</h2><p>Seu progresso de estudos num relance</p></div>
+        <div><h2>📊 Painel</h2><p>${greeting} Aqui está o seu resumo.</p></div>
       </div>
 
+      <div class="card hours-hero">
+        <div class="hours-main">
+          <span class="hours-label">⏱️ Horas estudadas em ${monthName}</span>
+          <span class="hours-big">${fmtDur(monthSec)}</span>
+          ${timer.running ? `<span class="hours-live">🔴 cronômetro rodando agora</span>` : `<span class="hours-hint">registre seu tempo na aba ⏱️ Cronômetro</span>`}
+        </div>
+        <div class="hours-side">
+          <div><strong>${fmtDur(todaySec)}</strong><span>hoje</span></div>
+          <div><strong>${fmtDur(totalSec)}</strong><span>no total</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">🎯 Para hoje</div>
+      ${(todayPlan.length || todayTasks.length) ? `
+        <div class="today-grid">
+          ${todayPlan.length ? `
+            <div class="card">
+              <strong>📅 Estudos planejados</strong>
+              <ul class="mini-list">${todayPlan.map((p) => {
+                const sub = subjectById(p.subjectId);
+                return `<li class="${p.done ? "done" : ""}"><span class="tag-dot" style="--c:${sub ? sub.color : "var(--primary)"}">${esc(p.title)}</span></li>`;
+              }).join("")}</ul>
+            </div>` : ""}
+          ${todayTasks.length ? `
+            <div class="card">
+              <strong>✅ Tarefas para hoje</strong>
+              <ul class="mini-list">${todayTasks.map((t) => `<li>${esc(t.title)}</li>`).join("")}</ul>
+            </div>` : ""}
+        </div>`
+        : `<div class="empty small"><p>Nada marcado para hoje. Planeje no 🗓️ Calendário ou comece uma sessão no ⏱️ Cronômetro!</p></div>`}
+
+      <div class="section-title">📌 Resumo</div>
       <div class="cards">
+        <div class="card stat-card">
+          <span class="stat-label">⏳ Tarefas pendentes</span>
+          <span class="stat-value">${pending.length}</span>
+          <span class="stat-sub">${overdue > 0 ? `<span class="overdue">${overdue} atrasada(s)</span>` : "em dia 🎉"}</span>
+        </div>
+        <div class="card stat-card">
+          <span class="stat-label">✅ Concluídas</span>
+          <span class="stat-value">${doneCount}</span>
+          <span class="stat-sub">de ${tasks.length} tarefas</span>
+        </div>
         <div class="card stat-card">
           <span class="stat-label">📘 Matérias</span>
           <span class="stat-value">${subjects.length}</span>
           <span class="stat-sub">cadastradas</span>
         </div>
         <div class="card stat-card">
-          <span class="stat-label">✅ Tarefas concluídas</span>
-          <span class="stat-value">${done}/${tasks.length}</span>
-          <span class="stat-sub">${pct}% do total</span>
-        </div>
-        <div class="card stat-card">
-          <span class="stat-label">⏳ Pendentes</span>
-          <span class="stat-value">${pending.length}</span>
-          <span class="stat-sub">${overdue > 0 ? `<span class="overdue">${overdue} atrasada(s)</span>` : "em dia 🎉"}</span>
-        </div>
-        <div class="card stat-card">
           <span class="stat-label">🎯 Metas ativas</span>
           <span class="stat-value">${goals.length}</span>
-          <span class="stat-sub">acompanhe na aba Metas</span>
+          <span class="stat-sub">veja em Metas</span>
         </div>
       </div>
 
-      <div class="card" style="margin-top:24px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <strong>Progresso geral das tarefas</strong><span style="color:var(--text-soft)">${pct}%</span>
-        </div>
-        <div class="progress"><span style="width:${pct}%"></span></div>
-      </div>
-
-      <div class="section-title">📅 Próximos prazos</div>
-      ${nextUp.length ? `<div class="task-list">${nextUp.map(taskRow).join("")}</div>`
-        : `<div class="empty"><div class="emoji">🌿</div><p>Nenhum prazo próximo. Aproveite para adiantar a matéria!</p></div>`}
+      ${nextUp.length ? `<div class="section-title">📅 Próximos prazos</div><div class="task-list">${nextUp.map(taskRow).join("")}</div>` : ""}
     `;
     bindTaskRows($("#view-dashboard"));
   }
@@ -292,63 +346,162 @@
   }
 
   // ============================================================
-  //  CRONOGRAMA
+  //  CALENDÁRIO (planejamento por dia)
   // ============================================================
+  const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const WEEKDAYS_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  let calRef = new Date();
+  calRef.setDate(1);
+
+  const isoLocal = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const addDaysISO = (iso, n) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + n);
+    return isoLocal(dt);
+  };
+
   function renderSchedule() {
-    const { slots } = Store.get();
+    const { plan } = Store.get();
+    const year = calRef.getFullYear();
+    const month = calRef.getMonth();
+    const todayStr = isoLocal(new Date());
+    const startWeekday = new Date(year, month, 1).getDay();
+    const gridStart = new Date(year, month, 1 - startWeekday);
+
+    let cells = "";
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      const iso = isoLocal(d);
+      const items = plan.filter((p) => p.date === iso);
+      const chips = items.slice(0, 3).map((p) => {
+        const sub = subjectById(p.subjectId);
+        return `<span class="cal-chip ${p.done ? "done" : ""}" style="--c:${sub ? sub.color : "var(--primary)"}">${esc(p.title)}</span>`;
+      }).join("");
+      const more = items.length > 3 ? `<span class="cal-more">+${items.length - 3} mais</span>` : "";
+      cells += `
+        <div class="cal-cell ${d.getMonth() === month ? "" : "out"} ${iso === todayStr ? "today" : ""}" data-date="${iso}">
+          <div class="cal-daynum">${d.getDate()}</div>
+          <div class="cal-items">${chips}${more}</div>
+        </div>`;
+    }
+
     $("#view-schedule").innerHTML = `
       <div class="view-head">
-        <div><h2>🗓️ Cronograma</h2><p>Monte sua rotina semanal de estudos</p></div>
+        <div><h2>🗓️ Calendário</h2><p>Planeje o que estudar em cada dia. Clique num dia para editar.</p></div>
+        <button class="btn btn-light" id="shiftPlan" title="Atrasou? Empurre tudo para frente">⏩ Adiei? Empurrar plano</button>
       </div>
-      <div class="schedule-grid">
-        ${DAYS.map((day, i) => {
-          const daySlots = slots.filter((s) => s.day === i).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-          return `
-            <div class="day-col">
-              <h4>${day.slice(0, 3)}</h4>
-              ${daySlots.map((s) => {
-                const sub = subjectById(s.subjectId);
-                return `<div class="slot" style="border-left-color:${sub ? sub.color : "var(--primary)"}">
-                  <span class="slot-x" data-del="${s.id}">✕</span>
-                  <div class="slot-time">${s.time || ""}</div>
-                  ${esc(sub ? sub.name : s.label || "Estudo")}
-                </div>`;
-              }).join("")}
-              <button class="add-slot" data-add="${i}">＋ adicionar</button>
-            </div>`;
-        }).join("")}
+      <div class="cal-toolbar">
+        <button class="icon-btn" id="calPrev">‹</button>
+        <strong class="cal-title">${MONTHS[month]} ${year}</strong>
+        <button class="icon-btn" id="calNext">›</button>
+        <button class="btn btn-light cal-today-btn" id="calToday">Hoje</button>
+      </div>
+      <div class="cal-grid">
+        ${WEEKDAYS_SHORT.map((w) => `<div class="cal-weekday">${w}</div>`).join("")}
+        ${cells}
       </div>
     `;
-    $$("[data-add]", $("#view-schedule")).forEach((b) => (b.onclick = () => slotForm(Number(b.dataset.add))));
-    $$("[data-del]", $("#view-schedule")).forEach((b) => (b.onclick = () => {
-      Store.set((s) => { s.slots = s.slots.filter((x) => x.id !== b.dataset.del); });
-      renderSchedule(); toast("Horário removido");
-    }));
+
+    $("#calPrev").onclick = () => { calRef.setMonth(calRef.getMonth() - 1); renderSchedule(); };
+    $("#calNext").onclick = () => { calRef.setMonth(calRef.getMonth() + 1); renderSchedule(); };
+    $("#calToday").onclick = () => { calRef = new Date(); calRef.setDate(1); renderSchedule(); };
+    $("#shiftPlan").onclick = () => shiftPlanForm();
+    $$(".cal-cell", $("#view-schedule")).forEach((c) => (c.onclick = () => dayModal(c.dataset.date)));
   }
 
-  function slotForm(day) {
-    modal.open(`Novo horário — ${DAYS[day]}`, `
-      <div class="form-grid">
-        <div class="field-row">
-          <div class="field"><label>Horário</label><input type="time" id="f-time" /></div>
-          <div class="field"><label>Matéria</label><select id="f-subject">${subjectOptions(null)}</select></div>
+  function dayModal(date) {
+    const [y, m, d] = date.split("-");
+    const title = `${DAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()]}, ${d}/${m}`;
+
+    const render = () => {
+      const items = Store.get().plan.filter((p) => p.date === date);
+      const list = items.length ? items.map((p) => {
+        const sub = subjectById(p.subjectId);
+        return `
+          <div class="day-item ${p.done ? "done" : ""}" data-id="${p.id}">
+            <div class="check ${p.done ? "on" : ""}" data-check="${p.id}">${p.done ? "✓" : ""}</div>
+            <div class="day-item-main">
+              <div class="day-item-title">${esc(p.title)}</div>
+              ${sub ? `<div class="day-item-sub"><span class="tag-dot" style="--c:${sub.color}">${esc(sub.name)}</span></div>` : ""}
+            </div>
+            <button class="icon-btn" data-post="${p.id}" title="Adiar 1 dia">⏩</button>
+            <button class="icon-btn" data-del="${p.id}" title="Excluir">🗑️</button>
+          </div>`;
+      }).join("") : `<p class="muted-note">Nada planejado para este dia ainda. Adicione abaixo. 👇</p>`;
+
+      const hasPend = items.some((p) => !p.done);
+      modal.open(title, `
+        <div class="day-list">${list}</div>
+        <div class="day-add">
+          <input id="day-new" placeholder="O que estudar? Ex.: 2ª Guerra Mundial" />
+          <select id="day-sub">${subjectOptions(null)}</select>
+          <button class="btn btn-primary" id="day-add-btn">Adicionar</button>
         </div>
-        <div class="field"><label>Observação (opcional)</label><input id="f-label" placeholder="Ex.: Resolver exercícios" /></div>
+        ${hasPend ? `<button class="btn btn-light" id="day-push" style="width:100%;justify-content:center;margin-top:10px">⏩ Mover pendentes para amanhã</button>` : ""}
+      `, (body) => {
+        const refresh = () => { renderSchedule(); render(); };
+
+        $$("[data-check]", body).forEach((el) => (el.onclick = () => {
+          Store.set((s) => { const p = s.plan.find((x) => x.id === el.dataset.check); p.done = !p.done; });
+          refresh();
+        }));
+        $$("[data-post]", body).forEach((el) => (el.onclick = () => {
+          Store.set((s) => { const p = s.plan.find((x) => x.id === el.dataset.post); p.date = addDaysISO(p.date, 1); });
+          refresh(); toast("Adiado para o dia seguinte");
+        }));
+        $$("[data-del]", body).forEach((el) => (el.onclick = () => {
+          Store.set((s) => { s.plan = s.plan.filter((x) => x.id !== el.dataset.del); });
+          refresh();
+        }));
+
+        const doAdd = () => {
+          const t = $("#day-new", body).value.trim();
+          if (!t) return;
+          const subId = $("#day-sub", body).value || null;
+          Store.set((s) => s.plan.push({ id: Store.uid(), date, title: t, subjectId: subId, done: false }));
+          refresh();
+        };
+        $("#day-add-btn", body).onclick = doAdd;
+        $("#day-new", body).addEventListener("keydown", (e) => { if (e.key === "Enter") doAdd(); });
+
+        const push = $("#day-push", body);
+        if (push) push.onclick = () => {
+          Store.set((s) => s.plan.forEach((p) => { if (p.date === date && !p.done) p.date = addDaysISO(date, 1); }));
+          refresh(); toast("Pendentes movidas para amanhã");
+        };
+      });
+    };
+    render();
+  }
+
+  function shiftPlanForm() {
+    const today = isoLocal(new Date());
+    modal.open("Empurrar plano", `
+      <div class="form-grid">
+        <p class="muted-note">Atrasou os estudos? Empurre tudo para frente de uma vez, sem precisar editar dia por dia.</p>
+        <div class="field"><label>A partir de qual dia?</label><input type="date" id="sp-from" value="${today}" /></div>
+        <div class="field"><label>Empurrar quantos dias para frente?</label><input type="number" id="sp-days" value="1" min="1" /></div>
         <div class="modal-actions">
-          <button class="btn btn-light" id="f-cancel">Cancelar</button>
-          <button class="btn btn-primary" id="f-save">Adicionar</button>
+          <button class="btn btn-light" id="sp-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="sp-save">Empurrar</button>
         </div>
       </div>
     `, (body) => {
-      $("#f-cancel", body).onclick = modal.close;
-      $("#f-save", body).onclick = () => {
-        Store.set((s) => s.slots.push({
-          id: Store.uid(), day,
-          time: $("#f-time", body).value,
-          subjectId: $("#f-subject", body).value || null,
-          label: $("#f-label", body).value.trim(),
-        }));
-        modal.close(); renderSchedule(); toast("Horário adicionado");
+      $("#sp-cancel", body).onclick = modal.close;
+      $("#sp-save", body).onclick = () => {
+        const from = $("#sp-from", body).value;
+        const n = Math.max(1, Number($("#sp-days", body).value) || 1);
+        if (!from) return toast("Escolha a partir de qual dia");
+        let count = 0;
+        Store.set((s) => s.plan.forEach((p) => { if (p.date >= from) { p.date = addDaysISO(p.date, n); count++; } }));
+        modal.close(); renderSchedule(); toast(`${count} estudo(s) adiado(s) em ${n} dia(s)`);
       };
     });
   }
@@ -511,6 +664,26 @@
   // ============================================================
   //  METAS
   // ============================================================
+  function weekStartISO() {
+    const d = new Date();
+    const offset = (d.getDay() + 6) % 7; // 0 = segunda-feira
+    d.setDate(d.getDate() - offset);
+    return isoLocal(d);
+  }
+  function studiedSeconds(period) {
+    const sessions = Store.get().sessions;
+    if (period === "month") {
+      const ym = isoLocal(new Date()).slice(0, 7);
+      return sessions.filter((s) => s.date && s.date.slice(0, 7) === ym).reduce((a, s) => a + s.seconds, 0);
+    }
+    if (period === "week") {
+      const ws = weekStartISO();
+      return sessions.filter((s) => s.date && s.date >= ws).reduce((a, s) => a + s.seconds, 0);
+    }
+    return sessions.reduce((a, s) => a + s.seconds, 0);
+  }
+  const PERIOD_LABEL = { week: "esta semana", month: "este mês", total: "no total" };
+
   function renderGoals() {
     const { goals } = Store.get();
     $("#view-goals").innerHTML = `
@@ -519,7 +692,17 @@
         <button class="btn btn-primary" id="addGoal">＋ Nova meta</button>
       </div>
       ${goals.length ? goals.map((g) => {
-        const pct = g.target ? Math.min(100, Math.round((g.current / g.target) * 100)) : 0;
+        const auto = !!g.auto;
+        let pct, label;
+        if (auto) {
+          const sec = studiedSeconds(g.period);
+          const targetSec = (g.target || 0) * 3600;
+          pct = targetSec ? Math.min(100, Math.round((sec / targetSec) * 100)) : 0;
+          label = `${fmtDur(sec)} / ${g.target}h • ${pct}%`;
+        } else {
+          pct = g.target ? Math.min(100, Math.round((g.current / g.target) * 100)) : 0;
+          label = `${g.current} / ${g.target} ${esc(g.unit || "")} • ${pct}%`;
+        }
         return `
           <div class="goal">
             <div class="goal-head">
@@ -528,18 +711,17 @@
             </div>
             <div class="progress"><span style="width:${pct}%"></span></div>
             <div class="goal-foot">
-              <span>${g.current} / ${g.target} ${esc(g.unit || "")} • ${pct}%</span>
-              <div class="stepper">
-                <button data-dec="${g.id}">−</button>
-                <button data-inc="${g.id}">＋</button>
-              </div>
+              <span>${label}</span>
+              ${auto
+                ? `<span class="goal-auto">🔗 Cronômetro (${PERIOD_LABEL[g.period] || ""})</span>`
+                : `<div class="stepper"><button data-dec="${g.id}">−</button><button data-inc="${g.id}">＋</button></div>`}
             </div>
           </div>`;
       }).join("")
       : `<div class="empty"><div class="emoji">🎯</div><p>Sem metas ainda. Que tal “Estudar 10h por semana”?</p></div>`}
     `;
     $("#addGoal").onclick = () => goalForm();
-    const step = (id, d) => { Store.set((s) => { const g = s.goals.find((x) => x.id === id); g.current = Math.max(0, g.current + d); }); renderGoals(); };
+    const step = (id, d) => { Store.set((s) => { const g = s.goals.find((x) => x.id === id); g.current = Math.max(0, (g.current || 0) + d); }); renderGoals(); };
     $$("[data-inc]", $("#view-goals")).forEach((b) => (b.onclick = () => step(b.dataset.inc, 1)));
     $$("[data-dec]", $("#view-goals")).forEach((b) => (b.onclick = () => step(b.dataset.dec, -1)));
     $$("[data-del]", $("#view-goals")).forEach((b) => (b.onclick = () => {
@@ -551,10 +733,26 @@
   function goalForm() {
     modal.open("Nova meta", `
       <div class="form-grid">
-        <div class="field"><label>Objetivo</label><input id="f-title" placeholder="Ex.: Ler 5 livros" /></div>
-        <div class="field-row">
-          <div class="field"><label>Alvo</label><input type="number" id="f-target" value="10" /></div>
-          <div class="field"><label>Unidade</label><input id="f-unit" placeholder="h, páginas, exercícios..." /></div>
+        <div class="field"><label>Objetivo</label><input id="f-title" placeholder="Ex.: Estudar 20h por semana" /></div>
+        <div class="field"><label>Tipo de meta</label>
+          <select id="f-type">
+            <option value="hours">⏱️ Horas de estudo (atualiza sozinha pelo Cronômetro)</option>
+            <option value="manual">✋ Manual (eu atualizo no + / −)</option>
+          </select>
+        </div>
+        <div class="field-row" id="row-hours">
+          <div class="field"><label>Meta de horas</label><input type="number" id="f-target-h" value="20" min="1" /></div>
+          <div class="field"><label>Período</label>
+            <select id="f-period">
+              <option value="week">Esta semana</option>
+              <option value="month">Este mês</option>
+              <option value="total">No total</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row" id="row-manual" hidden>
+          <div class="field"><label>Alvo</label><input type="number" id="f-target-m" value="10" /></div>
+          <div class="field"><label>Unidade</label><input id="f-unit" placeholder="páginas, exercícios..." /></div>
         </div>
         <div class="modal-actions">
           <button class="btn btn-light" id="f-cancel">Cancelar</button>
@@ -562,27 +760,118 @@
         </div>
       </div>
     `, (body) => {
+      const type = $("#f-type", body);
+      const toggle = () => {
+        const isHours = type.value === "hours";
+        $("#row-hours", body).hidden = !isHours;
+        $("#row-manual", body).hidden = isHours;
+      };
+      type.onchange = toggle; toggle();
+
       $("#f-cancel", body).onclick = modal.close;
       $("#f-save", body).onclick = () => {
         const title = $("#f-title", body).value.trim();
         if (!title) return toast("Descreva a meta");
-        Store.set((s) => s.goals.push({
-          id: Store.uid(), title,
-          current: 0,
-          target: Number($("#f-target", body).value) || 1,
-          unit: $("#f-unit", body).value.trim(),
-        }));
+        if (type.value === "hours") {
+          Store.set((s) => s.goals.push({
+            id: Store.uid(), title, auto: true, unit: "h",
+            period: $("#f-period", body).value,
+            target: Number($("#f-target-h", body).value) || 1,
+          }));
+        } else {
+          Store.set((s) => s.goals.push({
+            id: Store.uid(), title, auto: false, current: 0,
+            target: Number($("#f-target-m", body).value) || 1,
+            unit: $("#f-unit", body).value.trim(),
+          }));
+        }
         modal.close(); renderGoals(); toast("Meta criada");
       };
     });
   }
 
   // ============================================================
+  //  CRONÔMETRO
+  // ============================================================
+  function renderTimer() {
+    const { sessions, timer } = Store.get();
+    const running = timer.running;
+    const elapsed = timerElapsed();
+    const today = isoLocal(new Date());
+    const todaySessions = sessions.filter((s) => s.date === today).sort((a, b) => b.id.localeCompare(a.id));
+    const todaySec = todaySessions.reduce((a, s) => a + s.seconds, 0);
+    const statusText = running ? "⏳ Estudando..." : (elapsed > 0 ? "⏸ Pausado" : "Pronto para começar");
+
+    $("#view-timer").innerHTML = `
+      <div class="view-head">
+        <div><h2>⏱️ Cronômetro</h2><p>Inicie ao começar a estudar. Pause nas pausas. Finalize para salvar as horas.</p></div>
+      </div>
+
+      <div class="card timer-card">
+        <div class="timer-display" id="timerDisplay">${fmtClock(elapsed)}</div>
+        <div class="timer-status" id="timerStatus">${statusText}</div>
+        <div class="timer-actions">
+          ${(!running && elapsed === 0) ? `<button class="btn btn-primary timer-big" id="t-start">▶ Iniciar</button>` : ""}
+          ${running ? `<button class="btn btn-light timer-big" id="t-pause">⏸ Pausar</button>` : ""}
+          ${(!running && elapsed > 0) ? `<button class="btn btn-primary timer-big" id="t-resume">▶ Retomar</button>` : ""}
+          ${elapsed > 0 ? `<button class="btn btn-success" id="t-finish">✓ Finalizar e salvar</button>` : ""}
+          ${elapsed > 0 ? `<button class="btn btn-light" id="t-reset">Descartar</button>` : ""}
+        </div>
+      </div>
+
+      <div class="section-title">📅 Sessões de hoje — total ${fmtDur(todaySec)}</div>
+      ${todaySessions.length ? `<div class="task-list">${todaySessions.map((s) => `
+        <div class="task"><div class="task-main"><div class="task-title">⏱️ ${fmtDur(s.seconds)}</div></div>
+          <button class="icon-btn" data-del-sess="${s.id}" title="Excluir">🗑️</button></div>`).join("")}</div>`
+        : `<div class="empty small"><p>Nenhuma sessão hoje ainda. Bora começar? 💪</p></div>`}
+    `;
+
+    const onClick = (id, fn) => { const el = $("#" + id, $("#view-timer")); if (el) el.onclick = fn; };
+    onClick("t-start", () => {
+      Store.set((s) => { s.timer = { running: true, startedAt: Date.now(), accumulated: 0, subjectId: null }; });
+      renderTimer();
+    });
+    onClick("t-pause", () => {
+      Store.set((s) => { const tt = s.timer; tt.accumulated = (tt.accumulated || 0) + (Date.now() - tt.startedAt) / 1000; tt.startedAt = null; tt.running = false; });
+      renderTimer();
+    });
+    onClick("t-resume", () => {
+      Store.set((s) => { s.timer.running = true; s.timer.startedAt = Date.now(); });
+      renderTimer();
+    });
+    onClick("t-finish", () => {
+      const total = Math.round(timerElapsed());
+      Store.set((s) => {
+        if (total >= 1) s.sessions.push({ id: Store.uid(), date: isoLocal(new Date()), seconds: total, subjectId: s.timer.subjectId || null });
+        s.timer = { running: false, startedAt: null, accumulated: 0, subjectId: s.timer.subjectId };
+      });
+      renderTimer();
+      if (total >= 1) toast(`Sessão salva: ${fmtDur(total)} 🎉`);
+    });
+    onClick("t-reset", () => {
+      if (!confirm("Descartar esta sessão sem salvar?")) return;
+      Store.set((s) => { s.timer = { running: false, startedAt: null, accumulated: 0, subjectId: s.timer.subjectId }; });
+      renderTimer();
+    });
+
+    $$("[data-del-sess]", $("#view-timer")).forEach((b) => (b.onclick = () => {
+      Store.set((s) => { s.sessions = s.sessions.filter((x) => x.id !== b.dataset.delSess); });
+      renderTimer(); toast("Sessão removida");
+    }));
+  }
+
+  // Atualiza o relógio na tela a cada segundo (apenas visual, não salva)
+  setInterval(() => {
+    const disp = document.getElementById("timerDisplay");
+    if (disp && Store.get().timer.running) disp.textContent = fmtClock(timerElapsed());
+  }, 1000);
+
+  // ============================================================
   //  Navegação / tema / dados
   // ============================================================
   const renderers = {
     dashboard: renderDashboard, subjects: renderSubjects, tasks: renderTasks,
-    schedule: renderSchedule, grades: renderGrades, goals: renderGoals,
+    schedule: renderSchedule, grades: renderGrades, goals: renderGoals, timer: renderTimer,
   };
   let current = "dashboard";
 

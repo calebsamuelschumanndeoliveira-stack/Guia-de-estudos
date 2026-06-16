@@ -13,11 +13,13 @@ const Store = (() => {
       { id: uid(), title: "Ler capítulo 4 — Revolução Industrial", subjectId: null, due: "", priority: "media", done: false },
       { id: uid(), title: "Fazer lista de exercícios 1", subjectId: null, due: "", priority: "baixa", done: true },
     ],
-    slots: [],
+    plan: [], // { id, date "yyyy-mm-dd", title, subjectId, done }
     grades: [],
     goals: [
-      { id: uid(), title: "Estudar 20h esta semana", current: 6, target: 20, unit: "h" },
+      { id: uid(), title: "Estudar 20h por semana", auto: true, unit: "h", period: "week", target: 20 },
     ],
+    sessions: [], // { id, date "yyyy-mm-dd", seconds, subjectId } — sessões de estudo concluídas
+    timer: { running: false, startedAt: null, accumulated: 0, subjectId: null }, // cronômetro atual
     settings: { theme: "light", gradeDivisor: 2, bimesterCount: 4, passGrade: 6 },
   };
 
